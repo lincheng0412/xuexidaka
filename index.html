@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>学习打卡 · 自律日记</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background: linear-gradient(145deg, #f0f7ff 0%, #e9eef5 100%);
+            font-family: system-ui, -apple-system, 'Segoe UI', 'Helvetica Neue', 'Noto Sans', sans-serif;
+            padding: 1.5rem 1rem 3rem;
+            min-height: 100vh;
+            color: #1a2c3e;
+        }
+
+        /* 主容器 */
+        .container {
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        /* 头部区域 */
+        .hero {
+            text-align: center;
+            margin-bottom: 2rem;
+            padding: 1rem 0.5rem;
+        }
+
+        .hero h1 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #2b6e9e, #4a9fcf);
+            background-clip: text;
+            -webkit-background-clip: text;
+            color: transparent;
+            letter-spacing: -0.3px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .hero h1::before {
+            content: "📚";
+            font-size: 2rem;
+            background: none;
+            -webkit-background-clip: unset;
+            color: #2c7cb6;
+        }
+
+        .hero p {
+            color: #5a6e7c;
+            margin-top: 0.6rem;
+            font-weight: 500;
+        }
+
+        /* 打卡卡片（今日核心） */
+        .checkin-card {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(10px);
+            border-radius: 3rem;
+            padding: 1.8rem 1.5rem;
+            box-shadow: 0 20px 35px -12px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            margin-bottom: 2rem;
+            transition: all 0.2s ease;
+        }
+
+        .date-badge {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #4f7ea0;
+            background: #eef3fc;
+            display: inline-block;
+            padding: 0.3rem 1rem;
+            border-radius: 40px;
+            margin-bottom: 1rem;
+        }
+
+        .stats-grid {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin: 1.5rem 0 1.2rem;
+        }
+
+        .stat-item {
+            flex: 1;
+            background: #ffffffcc;
+            border-radius: 2rem;
+            padding: 0.8rem 0.5rem;
+            text-align: center;
+            backdrop-filter: blur(4px);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: 800;
+            color: #1f5e8c;
+            line-height: 1.2;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #5f7f9a;
+        }
+
+        .checkin-btn {
+            width: 100%;
+            background: linear-gradient(105deg, #1f6392, #2c8bc2);
+            border: none;
+            padding: 1rem;
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: white;
+            border-radius: 3rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            cursor: pointer;
+            transition: 0.2s;
+            box-shadow: 0 10px 18px -8px #1f639250;
+            margin-top: 1rem;
+        }
+
+        .checkin-btn:active {
+            transform: scale(0.97);
+            background: linear-gradient(105deg, #15537a, #1f6c9b);
+        }
+
+        .checkin-btn.disabled, .checkin-btn:disabled {
+            background: #b2c9da;
+            box-shadow: none;
+            transform: none;
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        /* 打卡历史&日历网格 */
+        .history-card {
+            background: white;
+            border-radius: 2rem;
+            padding: 1.5rem;
+            margin-bottom: 1.8rem;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05);
+        }
+
+        .section-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 1.2rem;
+            border-left: 5px solid #2c8bc2;
+            padding-left: 0.8rem;
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 8px;
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .weekday {
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: #6a7f92;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .day-cell {
+            aspect-ratio: 1 / 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+            font-weight: 500;
+            background-color: #f8fafd;
+            border-radius: 1.2rem;
+            transition: 0.1s ease;
+            color: #1f3b4c;
+            cursor: default;
+        }
+
+        .day-cell.checked {
+            background: #2c8bc2;
+            color: white;
+            box-shadow: 0 4px 8px rgba(44, 139, 194, 0.3);
+            position: relative;
+        }
+
+        .day-cell.checked::after {
+            content: "✓";
+            font-size: 1rem;
+            font-weight: bold;
+            margin-left: 2px;
+        }
+
+        .day-cell.empty {
+            background: transparent;
+            box-shadow: none;
+            color: #b9cedf;
+        }
+
+        .day-cell.today-highlight {
+            border: 2px solid #f5b042;
+            background-color: #fff2e0;
+            color: #c46f0f;
+            font-weight: 800;
+        }
+
+        .day-cell.today-highlight.checked {
+            border: 2px solid #ffd966;
+            background: #2c8bc2;
+            color: white;
+        }
+
+        /* streak 连胜徽章 */
+        .streak-badge {
+            background: #ffeed9;
+            border-radius: 2rem;
+            padding: 0.8rem 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 0.8rem;
+        }
+
+        .streak-fire {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 700;
+            font-size: 1.1rem;
+            background: #ffd96640;
+            padding: 0.2rem 1rem;
+            border-radius: 40px;
+        }
+
+        .reset-tip {
+            font-size: 0.7rem;
+            color: #8fa3b2;
+        }
+
+        /* 历史记录列表 */
+        .log-list {
+            max-height: 200px;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+
+        .log-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.7rem 0;
+            border-bottom: 1px solid #eef2f7;
+            font-size: 0.9rem;
+        }
+
+        .log-date {
+            font-weight: 500;
+            color: #2c5a7a;
+        }
+
+        .log-status {
+            background: #e0f0fa;
+            padding: 0.2rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #1c6a97;
+        }
+
+        .empty-log {
+            text-align: center;
+            color: #99aebb;
+            padding: 1.5rem;
+            font-style: italic;
+        }
+
+        /* 主题切换 */
+        .theme-toggle {
+            display: flex;
+            justify-content: flex-end;
+            margin-bottom: 0.5rem;
+        }
+
+        .theme-btn {
+            background: #eef2f8;
+            border: none;
+            border-radius: 60px;
+            padding: 0.4rem 1rem;
+            font-size: 0.8rem;
+            cursor: pointer;
+            font-weight: 500;
+            transition: 0.2s;
+        }
+
+        footer {
+            text-align: center;
+            font-size: 0.7rem;
+            color: #8ba0ae;
+            margin-top: 2rem;
+        }
+
+        /* 夜间模式 */
+        body.dark {
+            background: linear-gradient(145deg, #1e2a32, #18222a);
+            color: #eef2f8;
+        }
+
+        body.dark .checkin-card,
+        body.dark .history-card {
+            background: #2a3a44cc;
+            backdrop-filter: blur(10px);
+            border-color: #3f5562;
+            color: #eef2f8;
+        }
+
+        body.dark .stat-item {
+            background: #1e2f3a;
+            color: #cddfe8;
+        }
+
+        body.dark .stat-number {
+            color: #74c0e8;
+        }
+
+        body.dark .day-cell {
+            background-color: #1f2f38;
+            color: #c2d6e2;
+        }
+
+        body.dark .day-cell.checked {
+            background: #3a9bd5;
+            color: white;
+        }
+
+        body.dark .day-cell.today-highlight {
+            border-color: #f5b042;
+            background-color: #2f3d2c;
+            color: #ffcd94;
+        }
+
+        body.dark .log-item {
+            border-bottom-color: #364f5c;
+        }
+
+        body.dark .log-status {
+            background: #2b5570;
+            color: #ddf4ff;
+        }
+
+        button {
+            background: none;
+            border: none;
+        }
+
+        @media (max-width: 500px) {
+            .stats-grid {
+                gap: 0.5rem;
+            }
+            .stat-number {
+                font-size: 1.5rem;
+            }
+            .checkin-btn {
+                font-size: 1.2rem;
+                padding: 0.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="theme-toggle">
+        <button class="theme-btn" id="themeSwitcher">🌙 暗夜模式</button>
+    </div>
+    <div class="hero">
+        <h1>学习打卡</h1>
+        <p>每天进步一点点 · 坚持即荣耀</p>
+    </div>
+
+    <!-- 今日打卡核心区 -->
+    <div class="checkin-card">
+        <div class="date-badge" id="currentDateDisplay"></div>
+        <div class="stats-grid">
+            <div class="stat-item">
+                <div class="stat-number" id="totalDaysCount">0</div>
+                <div class="stat-label">累计打卡</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" id="currentStreakCount">0</div>
+                <div class="stat-label">🔥 连续打卡</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" id="maxStreakCount">0</div>
+                <div class="stat-label">🏆 最长记录</div>
+            </div>
+        </div>
+        <button class="checkin-btn" id="checkinBtn">
+            ✨ 今日打卡 ✨
+        </button>
+        <div class="streak-badge" style="margin-top: 1rem;">
+            <div class="streak-fire">🔥 每天3~5个英语单词</div>
+            <div class="reset-tip">💡 每天仅可打卡一次</div>
+        </div>
+    </div>
+
+    <!-- 打卡日历网格 -->
+    <div class="history-card">
+        <div class="section-title">
+            📅 打卡日历
+        </div>
+        <div class="calendar-grid" id="calendarGrid">
+            <!-- 动态渲染星期+日期 -->
+        </div>
+        <div class="section-title" style="margin-top: 0.8rem;">
+            📋 最近打卡记录
+        </div>
+        <div class="log-list" id="logList">
+            <div class="empty-log">✨ 暂无打卡记录，点击打卡开始你的学习之旅吧</div>
+        </div>
+    </div>
+    <footer>💪 每一次打卡，都是向更好的自己迈进</footer>
+</div>
+
+<script>
+    // ---------- 存储 key ----------
+    const STORAGE_KEY = 'study_checkin_data';
+
+    // 数据结构
+    // {
+    //   checkins: ["2026-04-01", "2026-04-02"],   // 已打卡日期 YYYY-MM-DD
+    //   version: 1
+    // }
+
+    // 辅助函数：获取今日 YYYY-MM-DD
+    function getTodayStr() {
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, '0');
+        const day = String(today.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+
+    // 获取 N 天前的日期字符串
+    function getDateStr(offsetDays = 0) {
+        const date = new Date();
+        date.setDate(date.getDate() + offsetDays);
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+
+    // 加载数据
+    function loadCheckinData() {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) {
+            return { checkins: [] };
+        }
+        try {
+            const data = JSON.parse(raw);
+            if (Array.isArray(data.checkins)) {
+                return data;
+            } else {
+                return { checkins: [] };
+            }
+        } catch(e) {
+            return { checkins: [] };
+        }
+    }
+
+    // 保存数据
+    function saveCheckinData(data) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    }
+
+    // 检查今天是否已经打卡
+    function isTodayChecked() {
+        const data = loadCheckinData();
+        const today = getTodayStr();
+        return data.checkins.includes(today);
+    }
+
+    // 执行打卡逻辑
+    function performCheckin() {
+        if (isTodayChecked()) {
+            alert("今天你已经打卡过了！明天继续加油～ 🌟");
+            return false;
+        }
+        const data = loadCheckinData();
+        const today = getTodayStr();
+        data.checkins.push(today);
+        // 保持排序 (升序)
+        data.checkins.sort();
+        saveCheckinData(data);
+        // 刷新UI
+        refreshAllUI();
+        // 微效鼓舞动画
+        const btn = document.getElementById('checkinBtn');
+        btn.style.transform = 'scale(0.98)';
+        setTimeout(() => { btn.style.transform = ''; }, 150);
+        // 可选轻提示
+        showToastMessage("✅ 打卡成功！今日学习+1");
+        return true;
+    }
+
+    // 简单toast风格（不依赖额外库）
+    function showToastMessage(msg, duration = 1800) {
+        let toast = document.querySelector('.custom-toast');
+        if (!toast) {
+            toast = document.createElement('div');
+            toast.className = 'custom-toast';
+            toast.style.position = 'fixed';
+            toast.style.bottom = '30px';
+            toast.style.left = '50%';
+            toast.style.transform = 'translateX(-50%)';
+            toast.style.backgroundColor = '#1f2e3ad9';
+            toast.style.backdropFilter = 'blur(12px)';
+            toast.style.color = 'white';
+            toast.style.padding = '10px 20px';
+            toast.style.borderRadius = '60px';
+            toast.style.fontSize = '0.9rem';
+            toast.style.fontWeight = '500';
+            toast.style.zIndex = '999';
+            toast.style.boxShadow = '0 4px 12px rgba(0,0,0,0.2)';
+            toast.style.whiteSpace = 'nowrap';
+            document.body.appendChild(toast);
+        }
+        toast.textContent = msg;
+        toast.style.opacity = '1';
+        clearTimeout(window.toastTimer);
+        window.toastTimer = setTimeout(() => {
+            toast.style.opacity = '0';
+        }, duration);
+    }
+
+    // 计算连续打卡天数 (基于已打卡日期数组)
+    function calculateStreak(checkins) {
+        if (!checkins.length) return 0;
+        // 将日期转为时间戳排序（已排序）
+        const sorted = [...checkins].sort();
+        let streak = 1;
+        let maxStreak = 1;
+        for (let i = 1; i < sorted.length; i++) {
+            const prevDate = new Date(sorted[i-1]);
+            const currDate = new Date(sorted[i]);
+            const diffDays = (currDate - prevDate) / (1000 * 60 * 60 * 24);
+            if (diffDays === 1) {
+                streak++;
+                maxStreak = Math.max(maxStreak, streak);
+            } else if (diffDays > 1) {
+                streak = 1;
+            } else {
+                // 相同日期理论上不会出现，但防重复
+                continue;
+            }
+        }
+        // 当前连续（从今天往前推）
+        let currentStreak = 0;
+        const today = getTodayStr();
+        let checkDate = new Date(today);
+        while (true) {
+            const dateStr = `${checkDate.getFullYear()}-${String(checkDate.getMonth()+1).padStart(2,'0')}-${String(checkDate.getDate()).padStart(2,'0')}`;
+            if (sorted.includes(dateStr)) {
+                currentStreak++;
+                checkDate.setDate(checkDate.getDate() - 1);
+            } else {
+                break;
+            }
+        }
+        return { currentStreak, maxStreak };
+    }
+
+    // 获取最近N条打卡记录（展示最近5条）
+    function getRecentLogs(checkins) {
+        const sorted = [...checkins].sort().reverse();
+        return sorted.slice(0, 6);
+    }
+
+    // 渲染日历 (显示最近35天左右，包含本月及部分上月下月)
+    function renderCalendar(checkinsSet) {
+        const gridContainer = document.getElementById('calendarGrid');
+        if (!gridContainer) return;
+        // 星期行
+        const weekdays = ['一', '二', '三', '四', '五', '六', '日'];
+        let html = '';
+        weekdays.forEach(day => {
+            html += `<div class="weekday">${day}</div>`;
+        });
+        const today = new Date();
+        const currentYear = today.getFullYear();
+        const currentMonth = today.getMonth(); // 0-11
+        // 展示以当前月份为中心，前后各展示半个月（一共6周42天）
+        // 获取当前月份第一天
+        const firstDayOfMonth = new Date(currentYear, currentMonth, 1);
+        const startWeekday = firstDayOfMonth.getDay(); // 0周日~6周六, 需要转换为周一为一周开始 (周一=1,周日=7)
+        let startOffset = (startWeekday === 0 ? 6 : startWeekday - 1); // 周一偏移量
+        const startDate = new Date(currentYear, currentMonth, 1);
+        startDate.setDate(startDate.getDate() - startOffset);
+        
+        // 渲染42天
+        for (let i = 0; i < 42; i++) {
+            const cellDate = new Date(startDate);
+            cellDate.setDate(startDate.getDate() + i);
+            const year = cellDate.getFullYear();
+            const month = String(cellDate.getMonth() + 1).padStart(2,'0');
+            const day = String(cellDate.getDate()).padStart(2,'0');
+            const dateStr = `${year}-${month}-${day}`;
+            const isChecked = checkinsSet.has(dateStr);
+            const isToday = (dateStr === getTodayStr());
+            let additionalClass = '';
+            if (isChecked) additionalClass += ' checked';
+            if (isToday) additionalClass += ' today-highlight';
+            // 如果是不同月份淡灰色处理（样式上可选，但保留）
+            const isCurrentMonth = (cellDate.getMonth() === currentMonth);
+            let opacityStyle = '';
+            if (!isCurrentMonth) {
+                additionalClass += ' empty'; // 增加半透明效果样式已有 .day-cell.empty 颜色浅
+            }
+            html += `<div class="day-cell ${additionalClass}">${cellDate.getDate()}</div>`;
+        }
+        gridContainer.innerHTML = html;
+    }
+
+    // 刷新所有UI: 统计数据，日历，历史记录，按钮状态
+    function refreshAllUI() {
+        const data = loadCheckinData();
+        const checkins = data.checkins || [];
+        const todayStr = getTodayStr();
+        const checkedToday = checkins.includes(todayStr);
+        // 更新按钮状态
+        const checkinBtn = document.getElementById('checkinBtn');
+        if (checkedToday) {
+            checkinBtn.disabled = true;
+            checkinBtn.classList.add('disabled');
+            checkinBtn.innerHTML = '✅ 今日已完成打卡 ✅';
+        } else {
+            checkinBtn.disabled = false;
+            checkinBtn.classList.remove('disabled');
+            checkinBtn.innerHTML = '✨ 今日打卡 ✨';
+        }
+
+        // 累计打卡数量
+        const totalDays = checkins.length;
+        document.getElementById('totalDaysCount').innerText = totalDays;
+        
+        // 计算连续与最大
+        const { currentStreak, maxStreak } = calculateStreak(checkins);
+        document.getElementById('currentStreakCount').innerText = currentStreak;
+        document.getElementById('maxStreakCount').innerText = maxStreak;
+
+        // 更新当前日期显示
+        const dateObj = new Date();
+        const formattedDate = `${dateObj.getFullYear()}年${String(dateObj.getMonth()+1).padStart(2,'0')}月${String(dateObj.getDate()).padStart(2,'0')}日 ${['周日','周一','周二','周三','周四','周五','周六'][dateObj.getDay()]}`;
+        document.getElementById('currentDateDisplay').innerHTML = `📌 ${formattedDate}`;
+
+        // 渲染日历 (传入set提升性能)
+        const checkinsSet = new Set(checkins);
+        renderCalendar(checkinsSet);
+        
+        // 渲染历史记录列表
+        const logs = getRecentLogs(checkins);
+        const logContainer = document.getElementById('logList');
+        if (logs.length === 0) {
+            logContainer.innerHTML = '<div class="empty-log">📭 还没有打卡记录，点击上方按钮开始～</div>';
+        } else {
+            let logHtml = '';
+            logs.forEach(dateStr => {
+                // 格式化显示
+                const dateParts = dateStr.split('-');
+                const showDate = `${dateParts[0]}.${dateParts[1]}.${dateParts[2]}`;
+                logHtml += `
+                    <div class="log-item">
+                        <span class="log-date">📖 ${showDate}</span>
+                        <span class="log-status">已完成打卡</span>
+                    </div>
+                `;
+            });
+            logContainer.innerHTML = logHtml;
+        }
+    }
+
+    // 夜间模式切换
+    function initTheme() {
+        const savedTheme = localStorage.getItem('theme_mode');
+        if (savedTheme === 'dark') {
+            document.body.classList.add('dark');
+            document.getElementById('themeSwitcher').innerHTML = '☀️ 明亮模式';
+        } else {
+            document.body.classList.remove('dark');
+            document.getElementById('themeSwitcher').innerHTML = '🌙 暗夜模式';
+        }
+    }
+    function toggleTheme() {
+        if (document.body.classList.contains('dark')) {
+            document.body.classList.remove('dark');
+            localStorage.setItem('theme_mode', 'light');
+            document.getElementById('themeSwitcher').innerHTML = '🌙 暗夜模式';
+        } else {
+            document.body.classList.add('dark');
+            localStorage.setItem('theme_mode', 'dark');
+            document.getElementById('themeSwitcher').innerHTML = '☀️ 明亮模式';
+        }
+    }
+    
+    // 防止重复打卡日期内手动篡改后刷新同步
+    window.addEventListener('storage', (e) => {
+        if (e.key === STORAGE_KEY) {
+            refreshAllUI();
+        }
+    });
+    
+    // 初始化
+    function init() {
+        initTheme();
+        refreshAllUI();
+        const checkBtn = document.getElementById('checkinBtn');
+        if (checkBtn) checkBtn.addEventListener('click', performCheckin);
+        const themeBtn = document.getElementById('themeSwitcher');
+        if (themeBtn) themeBtn.addEventListener('click', toggleTheme);
+        // 每分钟更新时间显示? 可不必但以防跨日更新按钮状态
+        let lastDateCheck = getTodayStr();
+        setInterval(() => {
+            const newToday = getTodayStr();
+            if (lastDateCheck !== newToday) {
+                lastDateCheck = newToday;
+                refreshAllUI();
+                // 如果新的一天且未打卡，按钮重新激活
+            }
+        }, 60000); // 每分钟检查日期变更
+    }
+    
+    init();
+</script>
+</body>
+</html>
