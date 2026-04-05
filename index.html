@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>学习打卡 · 自定义任务自律本</title>
+    <title>学习打卡 · 永久自定义任务本</title>
     <style>
         * {
             margin: 0;
@@ -57,7 +57,6 @@
             font-weight: 500;
         }
 
-        /* 打卡卡片 */
         .checkin-card {
             background: rgba(255, 255, 255, 0.85);
             backdrop-filter: blur(10px);
@@ -79,7 +78,6 @@
             margin-bottom: 1rem;
         }
 
-        /* 任务区域 */
         .tasks-area {
             margin: 1rem 0 1.2rem;
             background: rgba(245, 250, 255, 0.6);
@@ -207,7 +205,6 @@
             text-align: center;
         }
 
-        /* 统计卡片 */
         .stats-grid {
             display: flex;
             justify-content: space-between;
@@ -272,7 +269,6 @@
             font-size: 0.8rem;
         }
 
-        /* 历史卡片 */
         .history-card {
             background: white;
             border-radius: 2rem;
@@ -367,7 +363,6 @@
             font-size: 0.7rem;
         }
 
-        /* 夜间模式 */
         body.dark {
             background: linear-gradient(145deg, #1e2a32, #18222a);
             color: #eef2f8;
@@ -439,7 +434,7 @@
     </div>
     <div class="hero">
         <h1>学习打卡</h1>
-        <p>自定义每日任务 · 全部打√才能打卡</p>
+        <p>永久保留你的专属任务 · 每天沿用同一套清单</p>
     </div>
 
     <div class="checkin-card">
@@ -455,6 +450,7 @@
             </div>
             <div id="dailyTaskList"></div>
             <div id="taskMessage" class="task-warning"></div>
+            <div style="font-size:0.65rem; text-align:right; margin-top:6px; color:#8ba0ae;">✏️ 修改后自动保存为永久模板</div>
         </div>
 
         <div class="stats-grid">
@@ -465,8 +461,8 @@
         
         <button class="checkin-btn" id="checkinBtn">✨ 今日打卡 ✨</button>
         <div class="streak-badge">
-            <span>📌 每个任务需勾选完成</span>
-            <span>✏️ 点击文字可编辑学习内容</span>
+            <span>📌 任务清单永久保存</span>
+            <span>✏️ 修改后第二天依然是您自定义的内容</span>
         </div>
     </div>
 
@@ -476,77 +472,124 @@
         <div class="section-title">📋 最近打卡记录</div>
         <div class="log-list" id="logList"></div>
     </div>
-    <footer>💪 自定义任务，自由编辑，全部完成方可打卡</footer>
+    <footer>💪 自定义任务永久保留，每天沿用您的专属清单</footer>
 </div>
 
 <script>
     // ---------- 存储KEY ----------
-    const STORAGE_CHECKIN = 'custom_checkin_data';
-    const STORAGE_TASKS = 'custom_daily_tasks';    // 存储当天的自定义任务列表 [{ id, text, completed }]
+    const STORAGE_CHECKIN = 'custom_checkin_data_v2';
+    const STORAGE_TASK_TEMPLATE = 'custom_task_template_v2';   // 永久任务模板（用户自定义的清单结构）
+    const STORAGE_DAILY_COPY = 'custom_daily_tasks_cache_v2';  // 每天拷贝的副本（仅用于当天勾选状态）
     
-    // 最大任务数量
     const MAX_TASKS = 6;
     
-    // 获取今日日期 YYYY-MM-DD
+    // 获取今日日期
     function getTodayStr() {
         const d = new Date();
         return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
     }
     
-    // ---------- 打卡数据 ----------
-    function loadCheckinData() {
-        const raw = localStorage.getItem(STORAGE_CHECKIN);
-        if (!raw) return { checkins: [] };
-        try { return JSON.parse(raw); } catch(e) { return { checkins: [] }; }
+    // ---------- 默认初始模板（首次使用时） ----------
+    function getDefaultTemplate() {
+        return [
+            { id: "t1", text: "📖 学习英语单词 (可编辑)", completed: false },
+            { id: "t2", text: "💻 编程练习 / 算法题", completed: false },
+            { id: "t3", text: "📘 阅读专业书籍 15分钟", completed: false },
+            { id: "t4", text: "🔄 复习昨日笔记", completed: false },
+            { id: "t5", text: "🎧 英语听力练习", completed: false },
+            { id: "t6", text: "✍️ 写学习总结", completed: false }
+        ].slice(0, MAX_TASKS);
     }
-    function saveCheckinData(data) { localStorage.setItem(STORAGE_CHECKIN, JSON.stringify(data)); }
-    function isTodayChecked() { return loadCheckinData().checkins.includes(getTodayStr()); }
     
-    // ---------- 任务管理 (按天存储) ----------
+    // 获取用户的任务模板（永久保留的内容结构，不含勾选状态，勾选状态每天独立）
+    function getTaskTemplate() {
+        const raw = localStorage.getItem(STORAGE_TASK_TEMPLATE);
+        if (raw) {
+            try {
+                const template = JSON.parse(raw);
+                if (Array.isArray(template) && template.length > 0) {
+                    // 确保每个任务有 text 和 id
+                    return template.map(t => ({ id: t.id || Date.now() + Math.random(), text: t.text || "学习任务", completed: false }));
+                }
+            } catch(e) {}
+        }
+        // 首次使用，存入默认模板
+        const defaultTemplate = getDefaultTemplate();
+        localStorage.setItem(STORAGE_TASK_TEMPLATE, JSON.stringify(defaultTemplate));
+        return defaultTemplate;
+    }
+    
+    // 保存任务模板（用户增删改任务内容时，同时更新模板）
+    function saveTaskTemplate(template) {
+        // 保存时不保存 completed 状态，只保留结构和文本
+        const toStore = template.map(t => ({ id: t.id, text: t.text }));
+        localStorage.setItem(STORAGE_TASK_TEMPLATE, JSON.stringify(toStore));
+    }
+    
+    // 获取今天的任务副本（基于模板复制，同时保留今天的勾选进度）
     function getTodayTasks() {
         const today = getTodayStr();
-        const raw = localStorage.getItem(STORAGE_TASKS);
-        let all = {};
-        if (raw) { try { all = JSON.parse(raw); } catch(e) {} }
-        if (!all[today]) {
-            // 默认初始化6项？ 包含可编辑单词项
-            const defaultTasks = [
-                { id: Date.now() + 1, text: "📖 学习英语单词 (可编辑)", completed: false },
-                { id: Date.now() + 2, text: "💻 编程练习 / 算法题", completed: false },
-                { id: Date.now() + 3, text: "📘 阅读专业书籍 15分钟", completed: false },
-                { id: Date.now() + 4, text: "🔄 复习昨日笔记", completed: false },
-                { id: Date.now() + 5, text: "🎧 英语听力练习", completed: false },
-                { id: Date.now() + 6, text: "✍️ 写学习总结", completed: false }
-            ].slice(0, MAX_TASKS);
-            all[today] = defaultTasks;
-            localStorage.setItem(STORAGE_TASKS, JSON.stringify(all));
+        const template = getTaskTemplate();  // 获取当前永久模板（文字、顺序）
+        
+        // 读取今日缓存（包含勾选状态）
+        const cacheRaw = localStorage.getItem(STORAGE_DAILY_COPY);
+        let cache = {};
+        if (cacheRaw) { try { cache = JSON.parse(cacheRaw); } catch(e) {} }
+        
+        if (cache[today]) {
+            // 已有今日缓存，但需要确保任务数量/顺序与模板一致（用户可能在今天修改了模板，需同步）
+            const cachedTasks = cache[today];
+            // 合并逻辑：以模板的id为准，保留原有勾选状态，新增任务则添加，删除任务则移除
+            const merged = [];
+            for (let tmpl of template) {
+                const existing = cachedTasks.find(c => c.id === tmpl.id);
+                if (existing) {
+                    merged.push({ ...tmpl, completed: existing.completed || false });
+                } else {
+                    merged.push({ ...tmpl, completed: false });
+                }
+            }
+            // 如果缓存中有多余的任务（模板已删除的），丢弃
+            cache[today] = merged;
+            localStorage.setItem(STORAGE_DAILY_COPY, JSON.stringify(cache));
+            return merged;
+        } else {
+            // 新的一天：从模板复制，全部未完成
+            const freshTasks = template.map(t => ({ ...t, completed: false }));
+            cache[today] = freshTasks;
+            localStorage.setItem(STORAGE_DAILY_COPY, JSON.stringify(cache));
+            return freshTasks;
         }
-        // 确保任务数量不超过6，且每个任务有completed字段
-        let tasks = all[today];
-        if (tasks.length > MAX_TASKS) tasks = tasks.slice(0, MAX_TASKS);
-        tasks.forEach(t => { if (t.completed === undefined) t.completed = false; });
-        return tasks;
     }
     
-    function saveTodayTasks(tasks) {
+    // 保存今天的任务（同时更新缓存，如果用户修改了任务文字/增删，也要同步更新模板）
+    function saveTodayTasks(tasks, updateTemplate = true) {
         const today = getTodayStr();
-        const raw = localStorage.getItem(STORAGE_TASKS);
-        let all = {};
-        if (raw) { try { all = JSON.parse(raw); } catch(e) {} }
-        all[today] = tasks;
-        localStorage.setItem(STORAGE_TASKS, JSON.stringify(all));
+        const cacheRaw = localStorage.getItem(STORAGE_DAILY_COPY);
+        let cache = {};
+        if (cacheRaw) { try { cache = JSON.parse(cacheRaw); } catch(e) {} }
+        
+        // 保存今天的勾选状态和任务列表（保留完整结构）
+        cache[today] = tasks.map(t => ({ ...t }));
+        localStorage.setItem(STORAGE_DAILY_COPY, JSON.stringify(cache));
+        
+        // 如果 updateTemplate 为 true，说明用户修改了任务内容或增删，需要同步更新永久模板（保留文字和顺序，不含勾选）
+        if (updateTemplate) {
+            const newTemplate = tasks.map(t => ({ id: t.id, text: t.text }));
+            localStorage.setItem(STORAGE_TASK_TEMPLATE, JSON.stringify(newTemplate));
+        }
     }
     
-    // 添加新任务（空白可编辑）
+    // 添加新任务
     function addNewTask() {
         let tasks = getTodayTasks();
         if (tasks.length >= MAX_TASKS) {
             showToastMessage(`最多只能添加 ${MAX_TASKS} 项任务`, 1500);
             return false;
         }
-        const newId = Date.now();
+        const newId = Date.now() + Math.random();
         tasks.push({ id: newId, text: "新任务 (点击编辑)", completed: false });
-        saveTodayTasks(tasks);
+        saveTodayTasks(tasks, true);  // 同步更新模板
         renderTaskList();
         return true;
     }
@@ -558,7 +601,7 @@
             return;
         }
         tasks = tasks.filter(t => t.id != taskId);
-        saveTodayTasks(tasks);
+        saveTodayTasks(tasks, true);  // 删除同步到模板
         renderTaskList();
     }
     
@@ -566,20 +609,19 @@
         if (!newText.trim()) newText = "📝 学习任务";
         let tasks = getTodayTasks();
         const task = tasks.find(t => t.id == taskId);
-        if (task) task.text = newText.trim() || "📝 学习任务";
-        saveTodayTasks(tasks);
-        renderTaskList(); // 重新渲染保持编辑框失焦后更新显示
+        if (task) task.text = newText.trim();
+        saveTodayTasks(tasks, true);  // 文字修改同步到模板
+        renderTaskList();
     }
     
     function toggleTaskComplete(taskId, completed) {
         let tasks = getTodayTasks();
         const task = tasks.find(t => t.id == taskId);
         if (task) task.completed = completed;
-        saveTodayTasks(tasks);
-        // 更新按钮状态和提示
+        saveTodayTasks(tasks, false);  // 仅保存勾选状态，不更新模板（模板不关心勾选）
         refreshCheckinButtonState();
         updateTaskWarningMsg();
-        renderTaskList();  // 重新渲染以保持checkbox状态统一，但不影响输入框焦点（但体验可接受）
+        renderTaskList();  // 重新渲染保持界面
     }
     
     // 是否全部完成
@@ -589,7 +631,15 @@
         return tasks.every(t => t.completed === true);
     }
     
-    // 刷新打卡按钮
+    // 打卡数据
+    function loadCheckinData() {
+        const raw = localStorage.getItem(STORAGE_CHECKIN);
+        if (!raw) return { checkins: [] };
+        try { return JSON.parse(raw); } catch(e) { return { checkins: [] }; }
+    }
+    function saveCheckinData(data) { localStorage.setItem(STORAGE_CHECKIN, JSON.stringify(data)); }
+    function isTodayChecked() { return loadCheckinData().checkins.includes(getTodayStr()); }
+    
     function refreshCheckinButtonState() {
         const btn = document.getElementById('checkinBtn');
         if (!btn) return;
@@ -627,7 +677,6 @@
         if (badge) badge.innerText = `${total}/${MAX_TASKS}`;
     }
     
-    // 渲染任务列表 (支持编辑、勾选)
     function renderTaskList() {
         const container = document.getElementById('dailyTaskList');
         if (!container) return;
@@ -654,33 +703,26 @@
         }
         container.innerHTML = html;
         
-        // 绑定事件
         if (!checkedToday) {
-            // checkbox 变更
             document.querySelectorAll('.task-check').forEach(chk => {
                 chk.addEventListener('change', (e) => {
-                    e.stopPropagation();
-                    const id = parseInt(e.target.getAttribute('data-id'));
+                    const id = e.target.getAttribute('data-id');
                     toggleTaskComplete(id, e.target.checked);
                 });
             });
-            // 输入框实时编辑 (失焦保存)
             document.querySelectorAll('.task-input').forEach(input => {
                 input.addEventListener('blur', (e) => {
-                    const id = parseInt(e.target.getAttribute('data-id'));
+                    const id = e.target.getAttribute('data-id');
                     const newVal = e.target.value;
                     updateTaskText(id, newVal);
                 });
                 input.addEventListener('keypress', (e) => {
-                    if (e.key === 'Enter') {
-                        e.target.blur();
-                    }
+                    if (e.key === 'Enter') e.target.blur();
                 });
             });
-            // 删除按钮
             document.querySelectorAll('.delete-task').forEach(btn => {
                 btn.addEventListener('click', (e) => {
-                    const id = parseInt(btn.getAttribute('data-id'));
+                    const id = btn.getAttribute('data-id');
                     deleteTask(id);
                 });
             });
@@ -689,19 +731,15 @@
         refreshCheckinButtonState();
     }
     
-    // 简单防XSS
     function escapeHtml(str) {
         return str.replace(/[&<>]/g, function(m) {
             if (m === '&') return '&amp;';
             if (m === '<') return '&lt;';
             if (m === '>') return '&gt;';
             return m;
-        }).replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, function(c) {
-            return c;
         });
     }
     
-    // 打卡逻辑
     function performCheckin() {
         if (isTodayChecked()) {
             showToastMessage("今天已经打过卡啦，明天继续！");
@@ -716,14 +754,11 @@
         data.checkins.push(today);
         data.checkins.sort();
         saveCheckinData(data);
-        // 打卡成功后，不清除任务文本，但将当天任务全部锁定（不能编辑），保留已勾选状态但按钮禁用即可。
-        // 重新刷新UI让任务变为只读。
         refreshAllUI();
         showToastMessage("🎉 打卡成功！今日学习任务全部完成！");
         return true;
     }
     
-    // 计算连续
     function calculateStreak(checkins) {
         if (!checkins.length) return { currentStreak: 0, maxStreak: 0 };
         const sorted = [...checkins].sort();
@@ -785,19 +820,15 @@
         const week = ['周日','周一','周二','周三','周四','周五','周六'];
         document.getElementById('currentDateDisplay').innerHTML = `📌 ${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日 ${week[d.getDay()]}`;
         renderCalendar(set);
-        // 渲染历史记录
         const logs = [...checkins].sort().reverse().slice(0,6);
         const logDiv = document.getElementById('logList');
         if (logs.length === 0) logDiv.innerHTML = '<div class="empty-log" style="text-align:center; color:#99aebb;">暂无打卡记录</div>';
         else {
             logDiv.innerHTML = logs.map(date => `<div class="log-item"><span class="log-date">📖 ${date}</span><span class="log-status">任务完成✓ 已打卡</span></div>`).join('');
         }
-        renderTaskList();   // 重新渲染任务（根据是否打卡控制编辑性）
-        refreshCheckinButtonState();
-        updateTaskWarningMsg();
+        renderTaskList();
     }
     
-    // 跨日检查
     let lastDate = getTodayStr();
     setInterval(() => {
         const now = getTodayStr();
@@ -805,10 +836,9 @@
     }, 60000);
     
     window.addEventListener('storage', (e) => {
-        if (e.key === STORAGE_CHECKIN || e.key === STORAGE_TASKS) refreshAllUI();
+        if (e.key === STORAGE_CHECKIN || e.key === STORAGE_TASK_TEMPLATE || e.key === STORAGE_DAILY_COPY) refreshAllUI();
     });
     
-    // toast
     function showToastMessage(msg, dur=1800) {
         let toast = document.querySelector('.custom-toast');
         if (!toast) {
@@ -833,7 +863,6 @@
         window.toastTimer = setTimeout(() => toast.style.opacity = '0', dur);
     }
     
-    // 夜间模式
     function initTheme() {
         const saved = localStorage.getItem('theme_mode');
         if (saved === 'dark') { document.body.classList.add('dark'); document.getElementById('themeSwitcher').innerHTML = '☀️ 明亮模式'; }
